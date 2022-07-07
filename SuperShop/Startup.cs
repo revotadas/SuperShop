@@ -20,6 +20,8 @@ namespace SuperShop {
                 cfg.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
             });
 
+            services.AddTransient<SeedDb>();
+
             services.AddControllersWithViews();
         }
 
