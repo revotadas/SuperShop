@@ -2,18 +2,22 @@
 using Microsoft.EntityFrameworkCore;
 using SuperShop.Data;
 using SuperShop.Data.Entities;
+using SuperShop.Helpers;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SuperShop.Controllers {
     public class ProductsController : Controller {
         private readonly IProductsRepository productsRepository;
+        private readonly IUserHelper userHelper;
 
-        public ProductsController(IProductsRepository productsRepository) {
+        public ProductsController(IProductsRepository productsRepository, IUserHelper userHelper) {
             this.productsRepository = productsRepository;
+            this.userHelper = userHelper;
         }
 
         public IActionResult Index() {
-            return View(productsRepository.GetAll());
+            return View(productsRepository.GetAll().OrderBy(p => p.Name));
         }
 
         public async Task<IActionResult> Details(int? id) {
@@ -37,6 +41,7 @@ namespace SuperShop.Controllers {
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Product product) {
             if(ModelState.IsValid) {
+                product.User = await userHelper.GetUserByEmailAsync("rafael.lopes24@gmail.com");
                 await productsRepository.CreateAsync(product);
                 return RedirectToAction(nameof(Index));
             }
