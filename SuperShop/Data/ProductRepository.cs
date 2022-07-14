@@ -1,9 +1,17 @@
-﻿using SuperShop.Data.Entities;
+﻿using Microsoft.EntityFrameworkCore;
+using SuperShop.Data.Entities;
+using System.Linq;
 
 namespace SuperShop.Data {
     public class ProductRepository : GenericRepository<Product>, IProductsRepository {
-        public ProductRepository(DataContext context) : base(context) {
+        private readonly DataContext context;
 
+        public ProductRepository(DataContext context) : base(context) {
+            this.context = context;
+        }
+
+        public IQueryable GetAllWithUsers() {
+            return context.Products.Include(p => p.User);
         }
     }
 }
