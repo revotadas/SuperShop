@@ -13,10 +13,14 @@ namespace SuperShop.Controllers {
     public class ProductsController : Controller {
         private readonly IProductsRepository productsRepository;
         private readonly IUserHelper userHelper;
+        private readonly IImageHelper imageHelper;
+        private readonly IConverterHelper converterHelper;
 
-        public ProductsController(IProductsRepository productsRepository, IUserHelper userHelper) {
+        public ProductsController(IProductsRepository productsRepository, IUserHelper userHelper, IImageHelper imageHelper, IConverterHelper converterHelper) {
             this.productsRepository = productsRepository;
             this.userHelper = userHelper;
+            this.imageHelper = imageHelper;
+            this.converterHelper = converterHelper;
         }
 
         public IActionResult Index() {
@@ -47,19 +51,10 @@ namespace SuperShop.Controllers {
                 var path = string.Empty;
 
                 if(model.ImageFile != null && model.ImageFile.Length > 0) {
-                    var guid = Guid.NewGuid().ToString();
-                    var file = $"{guid}.jpg";
-
-                    path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\images\\products", file);
-
-                    using(var stream = new FileStream(path, FileMode.Create)) {
-                        await model.ImageFile.CopyToAsync(stream);
-                    }
-
-                    path = $"~/images/products/{file}";
+                    path = await imageHelper.UploadImageAsync(model.ImageFile, "products");
                 }
 
-                var product = ToProduct(model, path);
+                var product = converterHelper.ToProduct(model, path, true);
 
                 product.User = await userHelper.GetUserByEmailAsync("rafael.lopes24@gmail.com");
 
@@ -69,20 +64,6 @@ namespace SuperShop.Controllers {
             }
 
             return View(model);
-        }
-
-        private Product ToProduct(ProductViewModel model, string path) {
-            return new Product {
-                Id = model.Id,
-                ImageUrl = path,
-                IsAvailable = model.IsAvailable,
-                LastPurchase = model.LastPurchase,
-                LastSale = model.LastPurchase,
-                Name = model.Name,
-                Price = model.Price,
-                Stock = model.Stock,
-                User = model.User
-            };
         }
 
         public async Task<IActionResult> Edit(int? id) {
@@ -96,23 +77,9 @@ namespace SuperShop.Controllers {
                 return NotFound();
             }
 
-            var model = ToProductViewModel(product);
+            var model = converterHelper.ToProductViewModel(product);
 
             return View(model);
-        }
-
-        private ProductViewModel ToProductViewModel(Product product) {
-            return new ProductViewModel {
-                Id = product.Id,
-                IsAvailable = product.IsAvailable,
-                LastPurchase = product.LastPurchase,
-                LastSale = product.LastSale,
-                ImageUrl = product.ImageUrl,
-                Name = product.Name,
-                Price = product.Price,
-                Stock = product.Stock,
-                User = product.User
-            };
         }
 
         [HttpPost]
@@ -123,19 +90,10 @@ namespace SuperShop.Controllers {
                     var path = model.ImageUrl;
 
                     if(model.ImageFile != null && model.ImageFile.Length > 0) {
-                        var guid = Guid.NewGuid().ToString();
-                        var file = $"{guid}.jpg";
-
-                        path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\images\\products", file);
-
-                        using(var stream=new FileStream(path, FileMode.Create)) {
-                            await model.ImageFile.CopyToAsync(stream);
-                        }
-
-                        path = $"~/images/products/{file}";
+                        path = await imageHelper.UploadImageAsync(model.ImageFile, "products");
                     }
 
-                    var product = ToProduct(model, path);
+                    var product = converterHelper.ToProduct(model, path, false);
 
                     await productsRepository.UpdateAsync(product);
                 } catch(DbUpdateConcurrencyException) {
